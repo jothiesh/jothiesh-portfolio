@@ -765,156 +765,250 @@
     .orb { display: none; }
   }
 
-  /* ────── INTRO SPLASH ────── */
+  /* ────── INTRO (3 stages, 3D zoom) ────── */
   .intro {
     position: fixed; inset: 0;
     z-index: 10000;
     background: var(--bg);
-    display: grid; place-items: center;
     overflow: hidden;
     pointer-events: all;
+    perspective: 1400px;
+    transform-style: preserve-3d;
   }
   .intro.gone { pointer-events: none; }
-  .intro::before {
-    content: '';
-    position: absolute; inset: 0;
-    background:
-      radial-gradient(circle at 30% 30%, rgba(255,91,39,0.25), transparent 50%),
-      radial-gradient(circle at 70% 70%, rgba(214,255,58,0.15), transparent 50%);
-    filter: blur(40px);
-    opacity: 0;
-    animation: introBg 1.4s 0.1s var(--ease) forwards;
-  }
-  @keyframes introBg { to { opacity: 1; } }
 
+  /* background — visible from frame 0 */
+  .intro-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(236,233,226,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(236,233,226,0.05) 1px, transparent 1px);
+    background-size: 56px 56px;
+    animation: gridPan 8s linear infinite;
+    mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
+  }
+  @keyframes gridPan { from { background-position: 0 0; } to { background-position: 56px 56px; } }
+  .intro-orb { position: absolute; border-radius: 50%; filter: blur(60px); pointer-events: none; }
+  .intro-orb.a { width: 280px; height: 280px; background: rgba(255,91,39,0.5); top: 18%; left: 12%; animation: floatA 5s infinite ease-in-out; }
+  .intro-orb.b { width: 280px; height: 280px; background: rgba(214,255,58,0.35); bottom: 18%; right: 12%; animation: floatB 6s infinite ease-in-out; }
+  .intro-orb.c { width: 320px; height: 320px; background: rgba(110,193,255,0.22); top: 50%; left: 50%; transform: translate(-50%,-50%); animation: floatC 7s infinite ease-in-out; }
+  @keyframes floatA { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,-20px)} }
+  @keyframes floatB { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-25px,15px)} }
+  @keyframes floatC { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.15)} }
+
+  /* corner crosshairs */
+  .intro-corner { position: absolute; width: 24px; height: 24px; border: 1px solid var(--accent); z-index: 5; }
+  .intro-corner.tl { top: 32px; left: 32px; border-right: 0; border-bottom: 0; }
+  .intro-corner.tr { top: 32px; right: 32px; border-left: 0; border-bottom: 0; }
+  .intro-corner.bl { bottom: 32px; left: 32px; border-right: 0; border-top: 0; }
+  .intro-corner.br { bottom: 32px; right: 32px; border-left: 0; border-top: 0; }
+
+  /* HUD: counter, status, build, skip */
+  .intro-counter {
+    position: absolute; top: 38px; left: 72px; z-index: 6;
+    display: flex; gap: 10px; align-items: baseline;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; color: var(--fg-2);
+    text-transform: uppercase;
+  }
+  .intro-counter .pct { color: var(--accent); font-size: 16px; font-variant-numeric: tabular-nums; font-weight: 600; min-width: 4ch; display: inline-block; }
+  .intro-counter::after { content: ''; position: absolute; bottom: -12px; left: 0; right: 0; height: 1px; background: var(--line-2); }
+  .intro-counter .fill { position: absolute; bottom: -12px; left: 0; height: 1px; background: var(--accent); width: 0%; }
+
+  .intro-statuses {
+    position: absolute; top: 38px; right: 72px; z-index: 6;
+    display: flex; gap: 18px; align-items: center;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--fg-3); text-transform: uppercase;
+  }
+  .intro-statuses .blip { width: 7px; height: 7px; background: var(--acid); border-radius: 50%; animation: introBlink 1.5s infinite; margin-right: 6px; vertical-align: middle; display: inline-block; }
+  @keyframes introBlink { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+  .intro-build { position: absolute; bottom: 38px; left: 72px; z-index: 6; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--fg-3); text-transform: uppercase; }
+  .intro-build b { color: var(--fg); font-weight: 500; }
+  .intro-stages {
+    position: absolute; bottom: 38px; left: 50%; transform: translateX(-50%); z-index: 6;
+    display: flex; gap: 8px;
+  }
+  .intro-stages .d { width: 22px; height: 2px; background: var(--fg-4); transition: background 320ms var(--ease); }
+  .intro-stages .d.on { background: var(--accent); }
+  .intro-skip {
+    position: absolute; bottom: 38px; right: 72px; z-index: 8;
+    padding: 9px 16px; border-radius: 999px;
+    background: rgba(236,233,226,0.04); border: 1px solid var(--line-2);
+    color: var(--fg-2);
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    cursor: pointer; transition: all 240ms var(--ease);
+  }
+  .intro-skip:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .intro-skip kbd { margin-left: 8px; padding: 1px 6px; background: rgba(236,233,226,0.08); border-radius: 3px; font-family: inherit; font-size: 10px; }
+
+  /* exit curtains — behind stages */
   .intro-curtain {
     position: absolute; left: 0; right: 0; top: 0; height: 50%;
-    background: var(--bg);
-    z-index: 3;
+    background: var(--bg); z-index: 2;
     transform: translateY(0);
-    transition: transform 1100ms cubic-bezier(0.83, 0, 0.17, 1);
+    transition: transform 900ms cubic-bezier(0.83, 0, 0.17, 1);
   }
   .intro-curtain.bot { top: auto; bottom: 0; }
   .intro.exit .intro-curtain { transform: translateY(-100%); }
   .intro.exit .intro-curtain.bot { transform: translateY(100%); }
 
-  .intro-content {
-    position: relative;
-    z-index: 4;
-    text-align: center;
-    padding: 0 24px;
-    transition: opacity 600ms var(--ease), transform 600ms var(--ease);
-  }
-  .intro.exit .intro-content { opacity: 0; transform: translateY(-30px); }
-
-  .intro-counter {
-    position: absolute;
-    top: 24px; left: 24px;
-    font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; color: var(--fg-3);
-    z-index: 5;
-    display: flex; gap: 8px; align-items: baseline;
-  }
-  .intro-counter .pct { color: var(--fg); font-size: 14px; font-variant-numeric: tabular-nums; }
-  .intro-counter::after {
-    content: ''; position: absolute; bottom: -10px; left: 0; right: 0;
-    height: 1px; background: var(--line-2);
-  }
-  .intro-counter .fill {
-    position: absolute; bottom: -10px; left: 0; height: 1px;
-    background: var(--accent);
-    width: 0%;
-    transition: width 80ms linear;
-  }
-
-  .intro-tag {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 0.18em; color: var(--fg-3);
-    text-transform: uppercase;
-    margin-bottom: 28px;
+  /* stages — auto-play via animation, no JS toggling needed */
+  .stage {
+    position: absolute; inset: 0; z-index: 4;
+    display: grid; place-items: center;
     opacity: 0;
-    animation: introFade 0.6s 0.3s var(--ease) forwards;
-    display: inline-flex; align-items: center; gap: 10px;
+    will-change: transform, opacity, filter;
+    pointer-events: none;
   }
-  .intro-tag::before, .intro-tag::after {
-    content: ''; width: 32px; height: 1px; background: var(--fg-4);
+  #stage1 { animation: stageRun 1.6s 0.1s var(--ease) forwards; }
+  #stage2 { animation: stageRun 1.6s 1.6s var(--ease) forwards; }
+  #stage3 { animation: stageRun 1.6s 3.1s var(--ease) forwards; }
+  @keyframes stageRun {
+    0%   { opacity: 0; transform: translateZ(-700px) scale(0.7); filter: blur(0); }
+    18%  { opacity: 1; transform: translateZ(0) scale(1); filter: blur(0); }
+    78%  { opacity: 1; transform: translateZ(0) scale(1); filter: blur(0); }
+    100% { opacity: 0; transform: translateZ(900px) scale(2.3); filter: blur(14px); }
   }
-  @keyframes introFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  /* last stage holds longer */
+  #stage3 { animation-duration: 1.8s; }
+  @keyframes stageRun3 {
+    0%   { opacity: 0; transform: translateZ(-700px) scale(0.7); }
+    20%  { opacity: 1; transform: translateZ(0) scale(1); }
+    100% { opacity: 1; transform: translateZ(0) scale(1); }
+  }
+  #stage3 { animation-name: stageRun3; }
 
-  .intro-name {
-    font-family: var(--sans);
-    font-weight: 800;
-    font-size: clamp(64px, 14vw, 200px);
-    letter-spacing: -0.05em;
-    line-height: 0.9;
-    color: var(--fg);
-    overflow: hidden;
-  }
-  .intro-name .ch {
-    display: inline-block;
-    transform: translateY(110%) rotate(8deg);
-    opacity: 0;
-    animation: chRise 0.85s var(--ease) forwards;
-  }
-  .intro-name .dot { color: var(--accent); }
-  @keyframes chRise { to { transform: translateY(0) rotate(0); opacity: 1; } }
-
-  .intro-role {
-    margin-top: 20px;
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: clamp(20px, 3vw, 36px);
-    color: var(--accent);
-    letter-spacing: -0.015em;
-    opacity: 0;
-    animation: introFade 0.7s 1.1s var(--ease) forwards;
-  }
-  .intro-role .bracket { color: var(--fg-3); font-family: var(--mono); font-style: normal; font-size: 0.7em; margin: 0 12px; }
-
-  .intro-meta {
-    margin-top: 32px;
-    display: flex; justify-content: center; gap: 28px;
-    flex-wrap: wrap;
-    font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; color: var(--fg-3);
-    text-transform: uppercase;
-    opacity: 0;
-    animation: introFade 0.7s 1.35s var(--ease) forwards;
-  }
-  .intro-meta span { display: inline-flex; align-items: center; gap: 8px; }
-  .intro-meta .dot {
-    width: 6px; height: 6px; background: var(--acid); border-radius: 50%;
-    animation: blink 1.2s infinite;
-  }
-
-  .intro-skip {
-    position: absolute;
-    bottom: 24px; right: 24px;
-    z-index: 5;
-    padding: 8px 14px;
-    border-radius: 999px;
-    background: transparent;
+  /* STAGE 1: PROFILE CARD */
+  .s-profile { padding: 0 24px; }
+  .s-profile .card {
+    display: flex; align-items: center; gap: 26px;
+    padding: 24px 32px;
+    background: rgba(22,24,28,0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--line-2);
-    color: var(--fg-2);
-    font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
-    cursor: pointer;
-    transition: all 240ms var(--ease);
-    opacity: 0;
-    animation: introFade 0.7s 1.6s var(--ease) forwards;
+    border-radius: 18px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.5);
   }
-  .intro-skip:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .s-profile .av {
+    width: 84px; height: 84px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--acid));
+    display: grid; place-items: center;
+    font-family: var(--sans); font-weight: 800; color: #fff; font-size: 38px; letter-spacing: -0.03em;
+    flex-shrink: 0; position: relative;
+    animation: avPing 2s 0.5s infinite ease-out;
+  }
+  .s-profile .av::after {
+    content: ''; position: absolute; inset: -3px;
+    border-radius: 50%; border: 1px solid var(--accent); opacity: 0.4;
+    animation: avRing 2s 0.5s infinite ease-out;
+  }
+  @keyframes avPing { 0%{box-shadow:0 0 0 0 rgba(255,91,39,0.5)} 80%,100%{box-shadow:0 0 0 22px rgba(255,91,39,0)} }
+  @keyframes avRing { 0%{transform:scale(1); opacity:0.4} 100%{transform:scale(1.45); opacity:0} }
+  .s-profile .info { text-align: left; }
+  .s-profile .info .hello { font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-3); margin-bottom: 6px; }
+  .s-profile .info .nm { font-family: var(--sans); font-weight: 700; font-size: 32px; letter-spacing: -0.025em; line-height: 1; color: var(--fg); }
+  .s-profile .info .rl { font-family: var(--serif); font-style: italic; font-size: 18px; color: var(--accent); margin-top: 6px; }
+  .s-profile .verify {
+    margin-left: auto;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px; border-radius: 999px;
+    background: rgba(214,255,58,0.1); color: var(--acid);
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .s-profile .verify::before { content:''; width: 6px; height: 6px; background: var(--acid); border-radius: 50%; animation: introBlink 1.5s infinite; }
 
-  /* hide body scroll until intro is done */
+  /* STAGE 2: BIG NAME */
+  .s-name { padding: 0 24px; text-align: center; }
+  .s-name .tag {
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-3);
+    margin-bottom: 28px;
+    display: inline-flex; align-items: center; gap: 12px;
+  }
+  .s-name .tag::before, .s-name .tag::after { content: ''; width: 32px; height: 1px; background: var(--accent); }
+  .s-name .nm {
+    font-family: var(--sans); font-weight: 800;
+    font-size: clamp(64px, 14vw, 220px);
+    letter-spacing: -0.05em; line-height: 0.9;
+    color: var(--fg);
+    display: flex; justify-content: center; flex-wrap: wrap;
+  }
+  .s-name .nm span { display: inline-block; color: var(--fg); }
+  .s-name .nm .dot { color: var(--accent); }
+  .s-name .sub {
+    margin-top: 18px;
+    font-family: var(--serif); font-style: italic;
+    font-size: clamp(18px, 2.6vw, 32px);
+    color: var(--accent);
+  }
+
+  /* STAGE 3: ROLE */
+  .s-role { padding: 0 24px; text-align: center; max-width: 1100px; margin: 0 auto; }
+  .s-role .who {
+    display: inline-flex; align-items: center; gap: 12px;
+    padding: 7px 16px; border-radius: 999px;
+    background: rgba(255,91,39,0.1); border: 1px solid var(--accent);
+    margin-bottom: 28px;
+  }
+  .s-role .who-av {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--acid));
+    display: grid; place-items: center;
+    font-family: var(--sans); font-weight: 700; color: #fff; font-size: 11px;
+  }
+  .s-role .who-name { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+  .s-role .role-title {
+    font-family: var(--sans); font-weight: 700;
+    font-size: clamp(40px, 7vw, 96px);
+    letter-spacing: -0.035em; line-height: 1;
+    color: var(--fg);
+  }
+  .s-role .role-title .serif { font-family: var(--serif); font-style: italic; font-weight: 400; color: var(--accent); }
+  .s-role .stack { margin-top: 32px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .s-role .chip {
+    padding: 7px 13px; border-radius: 999px;
+    border: 1px solid var(--line-2); background: rgba(236,233,226,0.03);
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--fg-2);
+  }
+  .s-role .chip.hot { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .s-role .enter {
+    margin-top: 40px;
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-3);
+  }
+  .s-role .enter .arrow { color: var(--accent); animation: introBounce 1.4s infinite ease-in-out; }
+  @keyframes introBounce { 0%,100%{transform:translateX(0)} 50%{transform:translateX(6px)} }
+
   body.intro-active { overflow: hidden; height: 100vh; }
-
-  /* page enters with stagger */
   .nav, .hero { opacity: 0; }
-  body.intro-done .nav { animation: introFade 0.7s 0.05s var(--ease) forwards; }
-  body.intro-done .hero { animation: introFade 0.9s 0.15s var(--ease) forwards; }
+  body.intro-done .nav { animation: introFadeIn 0.7s 0.05s var(--ease) forwards; }
+  body.intro-done .hero { animation: introFadeIn 0.9s 0.15s var(--ease) forwards; }
+  @keyframes introFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
   @media (max-width: 720px) {
-    .intro-meta { gap: 16px; font-size: 10px; }
-    .intro-tag { font-size: 11px; letter-spacing: 0.14em; margin-bottom: 22px; }
-    .intro-tag::before, .intro-tag::after { width: 20px; }
-    .intro-counter { font-size: 10.5px; top: 18px; left: 18px; }
-    .intro-skip { bottom: 18px; right: 18px; font-size: 10px; }
+    .intro-corner { width: 18px; height: 18px; }
+    .intro-corner.tl, .intro-corner.tr { top: 18px; }
+    .intro-corner.bl, .intro-corner.br { bottom: 18px; }
+    .intro-corner.tl, .intro-corner.bl { left: 18px; }
+    .intro-corner.tr, .intro-corner.br { right: 18px; }
+    .intro-counter { top: 24px; left: 56px; font-size: 10.5px; }
+    .intro-statuses { top: 24px; right: 56px; gap: 12px; font-size: 9.5px; }
+    .intro-statuses span:not(:first-child) { display: none; }
+    .intro-build { bottom: 24px; left: 56px; font-size: 9.5px; }
+    .intro-skip { bottom: 24px; right: 56px; font-size: 10px; padding: 7px 12px; }
+    .intro-skip kbd { display: none; }
+    .intro-stages { bottom: 64px; gap: 6px; }
+    .intro-stages .d { width: 16px; }
+    .intro-orb { width: 180px; height: 180px; }
+    .s-profile .card { padding: 18px 20px; gap: 16px; flex-direction: column; text-align: center; }
+    .s-profile .info { text-align: center; }
+    .s-profile .av { width: 64px; height: 64px; font-size: 28px; }
+    .s-profile .info .nm { font-size: 26px; }
+    .s-profile .info .rl { font-size: 15px; }
+    .s-profile .verify { margin-left: 0; }
+    .s-role .role-title { font-size: clamp(28px, 9vw, 56px); }
+    .s-role .chip { font-size: 10px; padding: 6px 10px; }
   }
 
   /* MOTION REDUCE */
@@ -926,8 +1020,18 @@
 </head>
 <body class="intro-active">
 
-<!-- INTRO SPLASH -->
+<!-- INTRO (3 stages: profile → name zoom → role) -->
 <div class="intro" id="intro">
+  <div class="intro-grid"></div>
+  <div class="intro-orb a"></div>
+  <div class="intro-orb b"></div>
+  <div class="intro-orb c"></div>
+
+  <span class="intro-corner tl"></span>
+  <span class="intro-corner tr"></span>
+  <span class="intro-corner bl"></span>
+  <span class="intro-corner br"></span>
+
   <div class="intro-curtain"></div>
   <div class="intro-curtain bot"></div>
 
@@ -937,20 +1041,63 @@
     <span class="fill" id="introFill"></span>
   </div>
 
-  <div class="intro-content">
-    <div class="intro-tag">Portfolio · 2026</div>
-    <div class="intro-name" id="introName"></div>
-    <div class="intro-role">Java Fullstack Developer <span class="bracket">/</span> Cloud Specialist</div>
-    <div class="intro-meta">
-      <span><span class="dot"></span> 3+ years</span>
-      <span>·</span>
-      <span>7 production platforms</span>
-      <span>·</span>
-      <span>Bangalore, IN</span>
+  <div class="intro-statuses">
+    <span><span class="blip"></span>Online</span>
+    <span>2026</span>
+    <span>Bangalore</span>
+  </div>
+
+  <!-- STAGE 1: Profile card -->
+  <div class="stage" id="stage1">
+    <div class="s-profile">
+      <div class="card">
+        <div class="av">J</div>
+        <div class="info">
+          <div class="hello">Hello — I'm</div>
+          <div class="nm">Jothiesh</div>
+          <div class="rl">Java Fullstack Developer</div>
+        </div>
+        <span class="verify">Available</span>
+      </div>
     </div>
   </div>
 
-  <button class="intro-skip" id="introSkip">Skip intro →</button>
+  <!-- STAGE 2: Big name -->
+  <div class="stage" id="stage2">
+    <div class="s-name">
+      <div class="tag">Portfolio · 2026</div>
+      <div class="nm">
+        <span>J</span><span>O</span><span>T</span><span>H</span><span>I</span><span>E</span><span>S</span><span>H</span><span class="dot">.</span>
+      </div>
+      <div class="sub">Java Fullstack Developer</div>
+    </div>
+  </div>
+
+  <!-- STAGE 3: Role + tech -->
+  <div class="stage" id="stage3">
+    <div class="s-role">
+      <div class="who"><span class="who-av">J</span><span class="who-name">By Jothiesh</span></div>
+      <div class="role-title">Java Fullstack <span class="serif">Developer</span>.</div>
+      <div class="stack">
+        <span class="chip hot">Spring Boot</span>
+        <span class="chip">Microservices</span>
+        <span class="chip">React</span>
+        <span class="chip">AWS · Docker</span>
+        <span class="chip">Kafka · MQTT</span>
+        <span class="chip">MySQL · Redis</span>
+      </div>
+      <div class="enter">Entering portfolio <span class="arrow">→</span></div>
+    </div>
+  </div>
+
+  <div class="intro-stages">
+    <span class="d on" id="d1"></span>
+    <span class="d" id="d2"></span>
+    <span class="d" id="d3"></span>
+  </div>
+
+  <div class="intro-build">Build <b>0a3f</b> · Last deploy 2026.05.13</div>
+  <button class="intro-skip" id="introSkip">Skip <kbd>ESC</kbd></button>
 </div>
 
 <!-- SCROLL PROGRESS -->
@@ -1443,26 +1590,24 @@
   <span>v2.10 · build 0a3f</span>
 </footer>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-  /* ──────── INTRO SPLASH ──────── */
+<script>
+  /* ──────── INTRO SPLASH (auto CSS animations) ──────── */
   (function runIntro() {
     const intro = document.getElementById('intro');
-    const nameEl = document.getElementById('introName');
     const pctEl = document.getElementById('introPct');
     const fillEl = document.getElementById('introFill');
     const skipBtn = document.getElementById('introSkip');
+    const dots = [
+      document.getElementById('d1'),
+      document.getElementById('d2'),
+      document.getElementById('d3'),
+    ];
 
-    // build letters with stagger
-    const letters = 'JOTHIESH';
-    nameEl.innerHTML = letters.split('').map((ch, i) =>
-      `<span class="ch" style="animation-delay:${0.35 + i * 0.08}s">${ch}</span>`
-    ).join('') + '<span class="ch dot" style="animation-delay:1.05s">.</span>';
-
-    // animated loading counter (1.4s up to 100)
+    // counter
+    const total = 5000;
     const startedAt = performance.now();
-    const dur = 1900;
     function tickLoad(t) {
-      const p = Math.min(1, (t - startedAt) / dur);
+      const p = Math.min(1, (t - startedAt) / total);
       const v = Math.round(p * 100);
       pctEl.textContent = v + '%';
       fillEl.style.width = v + '%';
@@ -1470,7 +1615,15 @@
     }
     requestAnimationFrame(tickLoad);
 
+    // progress dots
+    setTimeout(() => dots[1].classList.add('on'), 1600);
+    setTimeout(() => dots[2].classList.add('on'), 3100);
+
+    // exit
+    const exitTimer = setTimeout(finish, 5000);
+
     function finish() {
+      clearTimeout(exitTimer);
       if (intro.classList.contains('exit')) return;
       intro.classList.add('exit');
       setTimeout(() => {
@@ -1478,15 +1631,16 @@
         intro.style.display = 'none';
         document.body.classList.remove('intro-active');
         document.body.classList.add('intro-done');
-      }, 1200);
+      }, 900);
     }
-    setTimeout(finish, 2600);
-    skipBtn.addEventListener('click', finish);
 
-    // tap anywhere after the name appears
+    skipBtn.addEventListener('click', (e) => { e.stopPropagation(); finish(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') finish();
+    });
     setTimeout(() => intro.addEventListener('click', (e) => {
-      if (e.target !== skipBtn) finish();
-    }), 900);
+      if (e.target !== skipBtn && !skipBtn.contains(e.target)) finish();
+    }), 800);
   })();
 
   /* ──────── SCROLL BAR + GLOW ──────── */
